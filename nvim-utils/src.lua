@@ -113,10 +113,10 @@ local function main()
 					return
 				end
 				vim.api.nvim_command(directive)
-        --[[ weird, I'll work on that later >:D ]]
-        if file_type == "c" then
-            vim.api.nvim_command(string.format("!/%s", FILE_NAME))
-        end
+			        --[[ weird, I'll work on that later >:D ]]
+			        if file_type == "c" then
+			            vim.api.nvim_command(string.format("!/%s", FILE_NAME))
+			        end
 		end
 
 		local function debug()
