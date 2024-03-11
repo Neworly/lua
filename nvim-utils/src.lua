@@ -84,12 +84,12 @@ local function main()
 
 		local function supported_run()
 				if type(directive) == type({}) then
-            print("is", directive == "table")
-            if directive.run then
-                return OKEY
-            end
-						print(INVALID_DEBUG_OPTION(file_type))
-          	return FAILED
+			            print("is", directive == "table")
+			            if directive.run then
+			                return OKEY
+			            end
+				    print(INVALID_DEBUG_OPTION(file_type))
+          		            return FAILED
 				end
 				return OKEY
 		end
