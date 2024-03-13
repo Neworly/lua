@@ -51,7 +51,7 @@ local function lang_opts()
             linked = EFILE_NAME
         },
 				lua = SOURCE,
-				cust = {
+				rust = {
 						run = CARGO_COMPILE,
 						debug = CARGO_DEBUG
 				}
