@@ -1,16 +1,24 @@
+
 local SOURCE = ":source"
 
 local FILE_NAME = "main"
-local GCC_FLAGS = "-Wall -Werror -o -lm"
+local EFILE_NAME = "lowmain"
+
+local GCC_FLAGS = "-Wall -o"
 local GCC_COMPILE = ":!gcc"
 
 local CARGO_COMPILE = ":!cargo run"
 local CARGO_DEBUG = ":!cargo debug"
 
-local ASSEMBLER_FLAGS = "-O0 -fverbose-asm"
+local CASSEMBLER_FLAGS = "-S -fverbose-asm"
+
+local ASM_COMPILER = ":!as"
+local ASM_FLAGS = "-o"
+local ASM_LINKER = "ld"
 
 local KEYMAP_COMPILER = "cr"
 local KEYMAP_DEBUG = "cd"
+local KEYMAP_ASSEMBLE = "ca"
 
 local function sformat(...)
 		return (""):rep(#{ ... }+1, "%s "):format(...)
@@ -24,23 +32,26 @@ local function INVALID_DEBUG_OPTION(ft)
 		return sformat(ft, "encountered an invalid debug option by 'this executive'")
 end
 
-local EXIT_SUCCESS, EXIT_FAILED = true, false
-local OKEY, FAILED = true, false
-
-local function catch(fn)
-		local status, _ = pcall(fn)
-		if not status then
-				return EXIT_FAILED
-		end
-		return EXIT_SUCCESS
+local function INVALID_ASM_OPTION(ft)
+		return sformat(ft, "an asssembler were not supported")
 end
+
+
+local EXIT_SUCCESS, EXIT_FAILED = 1, 0
+local OKEY, FAILED = true, false
 
 local function lang_opts()
 		return {
-				c = sformat(GCC_COMPILE, GCC_FLAGS, FILE_NAME..".c", FILE_NAME..".o"),
-				casm = sformat(GCC_COMPILE, ASSEMBLER_FLAGS, FILE_NAME..".c"),
+				c = {
+            run = sformat(GCC_COMPILE, GCC_FLAGS, FILE_NAME, FILE_NAME..".c"),
+            asm = sformat(GCC_COMPILE, CASSEMBLER_FLAGS, FILE_NAME..".c"),
+            linked = FILE_NAME
+        }, s = {
+            run = sformat(sformat(ASM_COMPILER, ASM_FLAGS, FILE_NAME..".o", FILE_NAME..".s"), ";", ASM_LINKER, ASM_FLAGS, EFILE_NAME, FILE_NAME..".o"),
+            linked = EFILE_NAME
+        },
 				lua = SOURCE,
-				rust = {
+				cust = {
 						run = CARGO_COMPILE,
 						debug = CARGO_DEBUG
 				}
@@ -69,7 +80,7 @@ local function active_file_ex()
 		return EXIT_FAILED
 end
 
-local function main()
+local function comp_mode(flag)
 		local opts = lang_opts()
 		local file_type = active_file_ex();
 		if not file_type then
@@ -84,39 +95,51 @@ local function main()
 
 		local function supported_run()
 				if type(directive) == type({}) then
-			            print("is", directive == "table")
-			            if directive.run then
-			                return OKEY
-			            end
-				    print(INVALID_DEBUG_OPTION(file_type))
-          		            return FAILED
+            if directive.run then
+                return OKEY
+            end
+						print(INVALID_DEBUG_OPTION(file_type))
+          	return FAILED
 				end
 				return OKEY
 		end
 
 		local function supported_debug()
-				if type(directive) == "table" then
+				if type(directive) == "table" and not directive.run then
 						print(INVALID_DEBUG_OPTION(file_type))
 						return FAILED
 				end
 				return OKEY
 		end
 
+
+		local function supported_assemble()
+				if type(directive) == "table" and not directive.asm then
+						print(INVALID_ASM_OPTION(file_type))
+						return FAILED
+				end
+				return OKEY
+		end
+
+
 		local function compile()
 				local status = supported_run()
 				if not status then
-					return
+					  return
 				end
-        
+
+        local function call_exe(com)
+				    vim.api.nvim_command(com)
+            if type(directive) == "table" and directive.linked then
+                vim.api.nvim_command(string.format("!./%s", directive.linked))
+            end
+        end
+
 				if type(directive) == "table" then
-					vim.api.nvim_command(directive.run)
-					return
+            call_exe(directive.run)
+					  return
 				end
-				vim.api.nvim_command(directive)
-			        --[[ weird, I'll work on that later >:D ]]
-			        if file_type == "c" then
-			            vim.api.nvim_command(string.format("!/%s", FILE_NAME))
-			        end
+        call_exe(directive)
 		end
 
 		local function debug()
@@ -128,8 +151,38 @@ local function main()
 				vim.api.nvim_command(directive.debug)
 		end
 
-		vim.keymap.set('n', KEYMAP_COMPILER, compile)
-		vim.keymap.set('n', KEYMAP_DEBUG, debug)
+	  local function assemble()
+				local status = supported_assemble()
+				if not status then
+					return
+				end
+				vim.api.nvim_command(directive.asm)
+		end
+
+    if flag == "debug" then
+        debug()
+        return
+    end
+
+    if flag == "assemble" then
+        assemble()
+        return
+    end
+    compile()
 end
 
-vim.keymap.set('n', "sc", main)
+local function run()
+    comp_mode("run")
+end
+
+local function recompile()
+    comp_mode("debug")
+end
+
+local function asm()
+    comp_mode("assemble")
+end
+
+vim.keymap.set('n', KEYMAP_COMPILER, run)
+vim.keymap.set('n', KEYMAP_DEBUG, recompile)
+vim.keymap.set('n', KEYMAP_ASSEMBLE, asm)
