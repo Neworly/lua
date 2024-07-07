@@ -156,7 +156,7 @@ function cycle()
         if n > 0 then
             if ok and "minecraft:dirt" == t.name then
                 for k, is_allowed in pairs(sapling) do               
-                    if true == is_allowed and inventory.equip("minecraft:oak_sapling") then
+                    if true == is_allowed and inventory.equip(k) then
                         bot:rotate("back")
                         local s = turtle.place()
                         bot:rotate("front")
