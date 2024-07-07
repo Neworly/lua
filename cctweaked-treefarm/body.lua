@@ -153,7 +153,7 @@ function cycle()
         local ok, t = turtle.inspectDown()
         local n = #bot.task.trees
         
-        if n > 0 then
+        --if n > 0 then
             if ok and "minecraft:dirt" == t.name then
                 for k, is_allowed in pairs(sapling) do               
                     if true == is_allowed and inventory.equip(k) then
@@ -169,9 +169,9 @@ function cycle()
             else
                 print("non-cultural block")               
             end    
-        else
+        --else
             -- print("no sapling were supplied or found")                         
-        end
+        --end
         
         unstuck()
     end
